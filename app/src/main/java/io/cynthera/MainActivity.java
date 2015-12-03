@@ -16,6 +16,7 @@ import android.widget.ListView;
 import com.elirex.fayeclient.FayeClient;
 import com.elirex.fayeclient.FayeClientListener;
 import com.elirex.fayeclient.MetaMessage;
+import com.google.gson.JsonObject;
 import com.koushikdutta.async.future.FutureCallback;
 import com.koushikdutta.ion.Ion;
 
@@ -37,10 +38,11 @@ public class MainActivity extends AppCompatActivity {
     FayeClient mClient;
 
     //data of customer
-    String user_id=""; //id of customer
-    String name="test",location="";
+    String user_id="2"; //id of customer
+    String name="test",location="",token="";
 
     ArrayList<JSONObject> obj=new ArrayList<JSONObject>();
+    ArrayList<JSONObject> message_list=new ArrayList<JSONObject>();
     MessageAdapter adapter;
     JSONObject jsonExt = new JSONObject();
 
@@ -78,25 +80,57 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (HANDSHAKE_TOKEN.length() > 0) {
                     if (msg_text.getText().toString().trim().length() > 0) {
+                        String msg2=msg_text.getText().toString().trim();
 
-
+                        //send message
                         // Include ext and id
                         JSONObject msg = new JSONObject();
                         JSONObject id = new JSONObject();
                         try {
                             msg.put("userid", user_id);
-                            msg.put("username","Test 6");
+                            msg.put("username", "Test 6");
                             msg.put("msg", msg_text.getText().toString().trim());
                             id.put("id", 2);
 
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+                        } catch (JSONException e2) {
+                            e2.printStackTrace();
                         }
-
-
                         mClient.publish("/messages/" + HANDSHAKE_TOKEN, msg.toString(), jsonExt.toString(), id.toString());
                         msg_text.setText("");
                         Log.d("SENT", jsonExt.toString());
+
+
+                        //send message for saving
+                        Ion.with(getApplicationContext())
+                                .load("https://www.wizters.com/api/cynthera/save.php?handshake_token="+HANDSHAKE_TOKEN+"&message="+msg2+"&token="+token+"&photo=0")
+                                .asString()
+                                .setCallback(new FutureCallback<String>() {
+                                    @Override
+                                    public void onCompleted(Exception e, String result) {
+                                        // if status = 1 send message through socket
+
+                                        Log.d("TOKEN", result);
+
+                                        JSONObject jObject = null; // json
+                                        try {
+                                            jObject = new JSONObject(result);
+                                            String status = jObject.getString("status");
+                                            Log.d("STATUS", status);
+                                            if (status.equals("1")) {
+                                            //All good and message saved
+
+
+                                            }
+                                            else
+                                            {
+                                                //Error
+                                                //handle it
+                                            }
+                                        } catch (JSONException e1) {
+                                            e1.printStackTrace();
+                                        }
+                                    }
+                                });
                     }
                 }
             }
@@ -174,8 +208,8 @@ public class MainActivity extends AppCompatActivity {
                         @Override
                         public void run() {
                             adapter = new MessageAdapter(MainActivity.this, R.layout.temp, obj);
-                             msg_list.setAdapter(adapter);
-                             adapter.notifyDataSetChanged();
+                            msg_list.setAdapter(adapter);
+                            adapter.notifyDataSetChanged();
                         }
                     });
                     Log.i("TOTAL REC", "OBJ " + obj);
@@ -214,9 +248,37 @@ public class MainActivity extends AppCompatActivity {
                             if (status.equals("1")) {
                                 HANDSHAKE_TOKEN=jObject.getString("handshake");
                                 CS_ID=jObject.getString("cs_id");
+                                token=jObject.getString("user_token");
+
                                 //all good, now connect to socket
                                        // stopFayeClient();
                                         startFayeCLient();
+                                JSONObject msg_json2 = null; // json
+                                try {
+                                     msg_json2 = new JSONObject(jObject.getString("messages"));
+                                    for (int i=0; i<msg_json2.length();i++)
+                                    {
+                                        String index=String.valueOf(i);
+                                        obj.add((JSONObject) msg_json2.get(index)); //add new message object to the json
+                                        Log.d("MESSAGE REC", String.valueOf((JSONObject) msg_json2.get(index)));
+                                    }
+
+                                    new Handler(Looper.getMainLooper()).post(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            adapter = new MessageAdapter(MainActivity.this, R.layout.temp, obj);
+                                            msg_list.setAdapter(adapter);
+                                            adapter.notifyDataSetChanged();
+                                        }
+                                    });
+                                    Log.i("TOTAL REC", "OBJ " + obj);
+
+                                } catch (JSONException e3) {
+                                    e3.printStackTrace();
+                                }
+
+
+
 
                             } else {
                                 //error
