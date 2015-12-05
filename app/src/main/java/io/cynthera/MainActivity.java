@@ -26,6 +26,7 @@ import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Array;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 
 
@@ -101,36 +102,40 @@ public class MainActivity extends AppCompatActivity {
 
 
                         //send message for saving
-                        Ion.with(getApplicationContext())
-                                .load("https://www.wizters.com/api/cynthera/save.php?handshake_token="+HANDSHAKE_TOKEN+"&message="+msg2+"&token="+token+"&photo=0")
-                                .asString()
-                                .setCallback(new FutureCallback<String>() {
-                                    @Override
-                                    public void onCompleted(Exception e, String result) {
-                                        // if status = 1 send message through socket
+                        try {
+                            Ion.with(getApplicationContext())
+                                    .load("https://www.wizters.com/api/cynthera/save.php?handshake_token="+HANDSHAKE_TOKEN+"&message="+ URLEncoder.encode(msg2, "UTF-8")+"&token="+token+"&photo=0")
+                                    .asString()
+                                    .setCallback(new FutureCallback<String>() {
+                                        @Override
+                                        public void onCompleted(Exception e, String result) {
+                                            // if status = 1 send message through socket
 
-                                        Log.d("TOKEN", result);
+                                            Log.d("TOKEN", result);
 
-                                        JSONObject jObject = null; // json
-                                        try {
-                                            jObject = new JSONObject(result);
-                                            String status = jObject.getString("status");
-                                            Log.d("STATUS", status);
-                                            if (status.equals("1")) {
-                                            //All good and message saved
+                                            JSONObject jObject = null; // json
+                                            try {
+                                                jObject = new JSONObject(result);
+                                                String status = jObject.getString("status");
+                                                Log.d("STATUS", status);
+                                                if (status.equals("1")) {
+                                                //All good and message saved
 
 
+                                                }
+                                                else
+                                                {
+                                                    //Error
+                                                    //handle it
+                                                }
+                                            } catch (JSONException e1) {
+                                                e1.printStackTrace();
                                             }
-                                            else
-                                            {
-                                                //Error
-                                                //handle it
-                                            }
-                                        } catch (JSONException e1) {
-                                            e1.printStackTrace();
                                         }
-                                    }
-                                });
+                                    });
+                        } catch (UnsupportedEncodingException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             }
