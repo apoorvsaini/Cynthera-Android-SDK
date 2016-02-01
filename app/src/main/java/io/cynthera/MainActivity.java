@@ -208,7 +208,12 @@ public class MainActivity extends AppCompatActivity {
                 try {
                     msg_json = new JSONObject(msg);
                     obj.add(msg_json); //add new message object to the json
+                    if(msg_json.has("transfer"))
+                    {
+                        //the chat has been transferred
+                       Log.d("TRANSFER","YES");
 
+                    }
                     new Handler(Looper.getMainLooper()).post(new Runnable() {
                         @Override
                         public void run() {
